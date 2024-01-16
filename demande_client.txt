@@ -1,4 +1,4 @@
-Nom du cient:heni loudh
+Nom du client:heni loudh
 Adresse:Rue
 Email:stephaneloiseaux@gmail.com 
 Telephone:075566

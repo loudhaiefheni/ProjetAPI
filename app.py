@@ -1,15 +1,19 @@
 from flask import Flask, render_template, request, redirect, url_for
-from flask_restful import Api
+from flask_restful import Api, Resource
 from extractionAPI import ExtractionResource
 from credit_scoreAPI import CreditScoringResource
 from solvabiliteAPI import SolvabiliteResource
 from evaluationAPI import EvaluationProprieteResource
 from approbationAPI import DecisionApprobationResource
+from compositeAPI import AfficherDecisionApprobationResource
 import json, os
 
 
 app = Flask(__name__)
 api = Api(app)
+
+# Définir le chemin du fichier client_info.json
+CLIENT_INFO_FILE_PATH = 'client_info.json'
 
 
 # Utilisateur factice pour cet exemple
@@ -48,32 +52,24 @@ def submit_demande():
     return render_template('confirmation.html')
 
 
+# Ajouter la ressource à l'API Flask-RESTful
+api.add_resource(AfficherDecisionApprobationResource, '/afficher_decision_approbation')
 
-# Définir le chemin du fichier client_info.json
-CLIENT_INFO_FILE_PATH = 'client_info.json'
+# Ajoutez cette route à votre application principale
+@app.route('/afficher_resultat')
+def afficher_resultat():
+    try:
+        with open(CLIENT_INFO_FILE_PATH, 'r', encoding='utf-8') as json_file:
+            client_data = json.load(json_file)
+            last_client_id = str(max(int(k) for k in client_data.keys()))
+            last_decision = client_data[last_client_id].get("decision_approbation", "N/A")
+            return render_template('result.html', decision=last_decision)
+    except FileNotFoundError:
+        return {"error": "Fichier client_info.json introuvable"}
 
-# Ajouter les ressources aux routes Flask-RESTful
-api.add_resource(ExtractionResource, '/extract_data')
-api.add_resource(CreditScoringResource, '/calculate_credit_score')
-api.add_resource(SolvabiliteResource, '/check_solvency')
-api.add_resource(EvaluationProprieteResource, '/evaluer_propriete')
-api.add_resource(DecisionApprobationResource, '/prendre_decision_approbation')
 
-# Route pour afficher la décision d'approbation dans une page HTML
-@app.route('/afficher_decision_approbation', methods=['GET', 'POST'])
-def afficher_decision_approbation():
-    if request.method == 'GET':
-        # Traiter la demande lorsque le bouton est cliqué
-        try:
-            with open(CLIENT_INFO_FILE_PATH, 'r', encoding='utf-8') as json_file:
-                client_data = json.load(json_file)
-                last_client_id = str(max(int(k) for k in client_data.keys()))
-                last_decision = client_data[last_client_id].get("decision_approbation", "N/A")
-                return render_template('result.html', decision=last_decision)
-        except FileNotFoundError:
-            return render_template('error.html', message="Fichier client_info.json introuvable")
-    else:
-        return render_template('confirmation.html')
+
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
